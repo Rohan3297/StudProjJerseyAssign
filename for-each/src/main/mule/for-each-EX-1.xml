@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="3234c6ca-bd6c-47d3-b9e7-938958bbc3f2" >
+		<salesforce:basic-connection username="rohan@atdev.com" password="Chess@1997" securityToken="bk7dMh84XrnaHwfhpIU3NJJsE"/>
+	</salesforce:sfdc-config>
+	<file:config name="File_Config2" doc:name="File Config" doc:id="cb0bd119-ebe2-4af7-a1f9-4dd8e2149d2f" >
+		<file:connection workingDir="D:\Batch\Salesforce" />
+	</file:config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="4158df76-fd6a-4317-8f41-ca3589f5c13c" >
+		<db:generic-connection url="jdbc:postgresql://192.168.0.102:5432/atdevdb517kpp519" driverClassName="org.postgresql.Driver" user="postgres" password="@manage" />
+	</db:config>
+	<flow name="for-each-EX-1Flow" doc:id="1237a573-ca68-47b0-91f5-9b16aa4e41f5" >
+		<http:listener doc:name="Listener" doc:id="e3f540ab-28e5-41fb-b650-3c92ded6bb1c" config-ref="HTTP_Listener_config" path="/contact"/>
+		<salesforce:query doc:name="Query" doc:id="ae22779d-3410-47fd-9621-eb1a9d102346" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[SELECT Id, Name, Phone, Email, Title FROM Contact WHERE Phone LIKE '+91%']]></salesforce:salesforce-query>
+		</salesforce:query>
+		<logger level="INFO" doc:name="Logger" doc:id="9cdb67f3-775b-4637-aa7e-db5b2639861b" message="#[payload]"/>
+		<foreach doc:name="For Each" doc:id="d9ab5518-fea4-4cf1-b7aa-e35d55cc031e" >
+			<ee:transform doc:name="Transform Message" doc:id="18604486-6125-49bc-bff6-20ad54f5d2a0" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<file:write doc:name="Write" doc:id="6a48b45a-db16-49bd-b1f0-346ee021a06a" config-ref="File_Config2" path="ContactOfIndia.csv" mode="APPEND"/>
+		</foreach>
+	</flow>
+	<flow name="for-each-EX-1Flow1" doc:id="a685be0d-41fa-44ff-8637-23e6d555dbff" >
+		<http:listener doc:name="Listener" doc:id="4aa03eb4-bf41-4a70-b47b-a326c96fc0f7" config-ref="HTTP_Listener_config" path="/parallelfor"/>
+		<set-payload value="#[[1,2,3,4,5,6,7,8]]" doc:name="Set Payload" doc:id="887c9155-b04b-48bd-b51e-80c56a2a55e7" />
+		<parallel-foreach doc:name="Parallel For Each" doc:id="77a9d368-43f9-4b71-803e-592e9c1cf534" collection="#[payload]">
+			<choice doc:name="Choice" doc:id="e42f9052-9081-4995-bd97-7b5595566419" >
+				<when expression="#[payload==6]">
+					<raise-error doc:name="Raise error" doc:id="53052e4f-cdaa-443d-8ab9-137197e4157b" type="CUSTOM:ERROR"/>
+				</when>
+				<otherwise >
+					<logger level="INFO" doc:name="Logger" doc:id="a1398721-c886-4f5a-bac5-6ad93fda5d15" message="#[payload]"/>
+				</otherwise>
+			</choice>
+		</parallel-foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="a2b0e117-2fe5-4641-84dd-d46b8dee72a8" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="3a93197d-88e9-4e7b-8ccf-90fb6b97f2c1" type="CUSTOM:ERROR">
+				<logger level="INFO" doc:name="Logger" doc:id="dc51533e-e369-480d-9a38-26580e6e1263" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="myFlow">
+
+  <http:listener doc:name="Listener" doc:id="dbc95551-966e-4d52-8a70-f1c5ce710760" config-ref="HTTP_Listener_config" path="/para"/>
+		<parallel-foreach collection="#[['banana', 'apple']]">
+      <choice>
+          <when expression="#[payload == 'banana']">
+					<logger level="INFO" doc:name="Logger" doc:id="ae587625-e667-464f-b805-121aaf5d8963" />
+
+              <!-- Processor that throws error -->
+          </when>
+          <otherwise>
+              <set-payload value="#[payload ++ '-result']"/>
+          </otherwise>
+      </choice>
+  </parallel-foreach>
+  <error-handler>
+      <on-error-continue type="COMPOSITE_ROUTING">
+          <!-- This will have the error thrown by the above processor -->
+          <logger message="#[error.errorMessage.payload.failures['0']]"/>
+          <!-- This will be a null value -->
+          <logger message="#[error.errorMessage.payload.failures['1']]"/>
+          <!-- This will be a null value -->
+          <logger message="#[error.errorMessage.payload.results['0']]"/>
+          <!-- This will have the result of this (correctly executed) route -->
+          <logger message="#[error.errorMessage.payload.results['1']]"/>
+      </on-error-continue>
+  </error-handler>
+
+</flow>
+</mule>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="3b464df0-af68-49d1-bded-c5554745c696" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="for-eachFlow" doc:id="7a9b3a64-2dfd-4103-81ff-95cac251a626" initialState="stopped">
+		<http:listener doc:name="Listener" doc:id="8068e163-d82c-469c-966b-0e2e5ddfd596" config-ref="HTTP_Listener_config" path="college" allowedMethods="POST"/>
+		<logger level="INFO" doc:name="Logger" doc:id="fd7ff225-ee40-4667-b152-52b4acd1f626" />
+		<set-variable value="#[[]]" doc:name="test" doc:id="8f794555-6f03-4357-a0c4-48a7efeed5ed" variableName="test"/>
+		<foreach doc:name="For Each" doc:id="517981c9-d784-4921-af14-dc18c7f420a6" collection="#[payload]">
+			<logger level="INFO" doc:name="Logger" doc:id="ac0b9d88-af01-41d0-a84c-386ce1431ac3" message="#[payload]"/>
+			<ee:transform doc:name="Transform Message" doc:id="896e08f8-d7a2-4ebd-a95a-d36e957ae54d">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  std_name: payload.std_name,
+  std_id: payload.std_id,
+  std_project: payload.std_project,
+  std_technology: payload.std_technology,
+  std_collegename: "Modern College"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<set-variable value="#[output application/json --- vars.test + payload]" doc:name="test" doc:id="3f0b6850-3b44-4f43-aaba-0b8bab74fd42" variableName="test"/>
+			<logger level="INFO" doc:name="Logger" doc:id="66b5edac-17f4-41c5-8302-9bb413ed9208" message="#[payload]"/>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="f9b36e38-2e41-49a7-9e8a-841d5b72e3bc">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+vars.test
+]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+	</flow>
+</mule>

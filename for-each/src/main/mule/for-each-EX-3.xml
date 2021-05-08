@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="5e861eb3-c4f2-400e-a5e8-0c5ee03381ea" >
+		<file:connection workingDir="D:\Batch" />
+	</file:config>
+	<file:config name="File_Config1" doc:name="File Config" doc:id="c7a70c2b-101d-400b-bc85-8106b4a3443e" >
+		<file:connection workingDir="D:\Batch\Target" />
+	</file:config>
+	<flow name="for-each-EX-3Flow" doc:id="0a48dad1-30ff-4331-b29e-f96e606b3406" initialState="stopped">
+		<file:listener doc:name="On New or Updated File" doc:id="d2f3320a-370a-4f02-8b66-3464ae8bd940" config-ref="File_Config" directory="Source" moveToDirectory="Done">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+			<file:matcher filenamePattern="*.csv" />
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="d41b03b8-37fe-407b-bb6e-4d02cef3daa4" />
+		<set-variable value="#[[]]" doc:name="get" doc:id="01ec9d04-17c0-459b-a9f9-53de425db990" variableName="get"/>
+		<foreach doc:name="For Each" doc:id="83801768-025e-479d-b776-67eea89c3958" >
+			<logger level="INFO" doc:name="Logger" doc:id="e27f2174-7ae2-4aaa-aeee-3d1b14e79623" message="#[payload]"/>
+			<ee:transform doc:name="Transform Message" doc:id="c492e3bd-2e46-40ca-81ad-2a6410cbab37" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload filter ((item, index) -> item.ProductPrice < 0)]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<set-variable doc:name="get" doc:id="2129fcdb-1654-4eb9-a5b5-02dc7c85f3a5" variableName="get" value="#[output application/json --- vars.get + payload]"/>
+		</foreach>
+		<file:write doc:name="Write" doc:id="58b03275-eb1e-4d8c-882b-88535a7341c1" config-ref="File_Config1" path="recordWithZeroValue.csv">
+			<file:content ><![CDATA[#[vars.get]]]></file:content>
+		</file:write>
+		<logger level="INFO" doc:name="Logger" doc:id="2f4f442c-751c-4941-a9d5-3b94e60685e0" message="Completed"/>
+	</flow>
+</mule>

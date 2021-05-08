@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<flow name="For-Each-SplitFlow" doc:id="b2dc2575-8a02-498b-ae61-861ab625bbce" >
+		<http:listener doc:name="Listener" doc:id="431ae37e-4377-4fcc-859a-48a0faeb9b83" config-ref="HTTP_Listener_config" path="/split"/>
+		<set-payload value='#[{&#10;"Orders": [{&#10;"OrderID": 2501,&#10;"Customer": "Alex",&#10;"Country": "USA",&#10;"Items": [{&#10;"ProductID": "P05",&#10;"UnitPrice": 50,&#10;"Quantity": 1,&#10;"Variants": [{&#10;"Color": "Blue",&#10;"Quantity": 1&#10;}&#10;]&#10;}&#10;]&#10;}, {&#10;"OrderID": 2502,&#10;"Customer": "Bob",&#10;"Country": "UK",&#10;"Items": [{&#10;"ProductID": "P05",&#10;"UnitPrice": 50,&#10;"Quantity": 5,&#10;"Variants": [{&#10;"Color": "Blue",&#10;"Quantity": 2&#10;}, {&#10;"Color": "Red",&#10;"Quantity": 3&#10;}&#10;]&#10;}, {&#10;"ProductID": "P06",&#10;"UnitPrice": 80,&#10;"Quantity": 1,&#10;"Variants": [{&#10;"Color": "Yellow",&#10;"Quantity": 1&#10;}&#10;]&#10;}&#10;]&#10;}, {&#10;"OrderID": 2503,&#10;"Customer": "Peter",&#10;"Country": "UK",&#10;"Items": [{&#10;"ProductID": "P07",&#10;"UnitPrice": 120,&#10;"Quantity": 10,&#10;"Variants": [{&#10;"Color": "Green",&#10;"Quantity": 4&#10;},{&#10;"Color": "Yellow",&#10;"Quantity": 6&#10;}&#10;]&#10;}&#10;]&#10;}&#10;]&#10;}]' doc:name="input" doc:id="7b49d31e-5f9e-41b0-9c11-bd247df1520e" />
+		<ee:transform doc:name="Transform Message" doc:id="94477c76-7aef-450e-83b5-648b451041ff" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.Orders]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="bb65c727-408a-4451-846c-e585324e7cf3" >
+			<ee:transform doc:name="Transform Message" doc:id="5fdea8b5-0a0b-4676-91f6-db4eff330861" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<file:write doc:name="Write" doc:id="a04dd006-4c35-49d2-85d2-bc62ec6c4ed0" config-ref="File_Config1" path="#[payload.OrderID ++ '.txt']"/>
+		</foreach>
+	</flow>
+	<flow name="batch-postFlow" doc:id="e99a37cf-b311-4077-896e-cabeab0c0918" >
+<http:listener doc:name="Listener" doc:id="4a92593d-67ee-4554-9248-09487b2fcfbc" config-ref="HTTP_Listener_config" path="/fail"/>
+<set-payload value='#[[
+&#10;{
+&#10;"accId":"294375",
+&#10;"usageTypeId":"100234",
+&#10;"amount":"0"
+&#10;},
+&#10;{
+&#10;"accId":"294376",
+&#10;"usageTypeId":"100554",
+&#10;"amount":"10"
+&#10;},
+&#10;{
+&#10;"accId":"294376",
+&#10;"usageTypeId":"100554",
+&#10;"amount":"15"
+&#10;},
+&#10;{
+&#10;"accId":"294376",
+&#10;"usageTypeId":"100554",
+&#10;"amount":"0"
+&#10;}
+&#10;]]' doc:name="Set Payload" doc:id="0fdfef04-be7e-495b-aea6-f510658def6a" mimeType="application/json" />
+		<logger level="INFO" doc:name="Logger" doc:id="3757c3ba-23ee-4357-9253-8082d83eec8f" />
+<batch:job jobName="batch-postBatch_Job" doc:id="7b1d29bd-5ed4-46a0-b078-cb6853761d15" maxFailedRecords="5" maxConcurrency="1">
+<batch:process-records >
+<batch:step name="Batch_Step1" doc:id="660a86a8-04d9-46c6-a5f7-82f90e30b680" acceptExpression="#[payload.amount&lt;=0]">
+<ee:transform doc:name="Transform Message" doc:id="74b998a9-1ee6-45f8-98c4-fb399d232c41">
+<ee:message>
+<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+</ee:message>
+</ee:transform>
+<logger level="INFO" doc:name="Logger" doc:id="56a77b27-fdd2-4017-88eb-35815fb2124e" />
+<batch:aggregator doc:name="Batch Aggregator" doc:id="df03f0d7-4536-4ba4-a7d8-a01053c9c804" size="10" preserveMimeTypes="true">
+<ee:transform doc:name="Transform Message" doc:id="ad352f20-c6c8-40e3-aaf0-56817b4d541a" >
+<ee:message >
+<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+</ee:message>
+</ee:transform>
+<ee:transform doc:name="Transform Message" doc:id="ea086be6-b793-4654-98a9-14a681d17b88">
+<ee:message>
+<ee:set-payload><![CDATA[%dw 2.0
+output application/csv
+---
+payload map ((item, index) -> {
+    accId: item.accId,
+    usageTypeId: item.usageTypeId,
+    amount: "account has amount less than 0"
+})]]></ee:set-payload>
+</ee:message>
+</ee:transform>
+<file:write doc:name="Write" doc:id="01ed7307-76cc-4a0c-88de-8178442296fe" config-ref="File_Config1" path="error.csv" />
+</batch:aggregator>
+</batch:step>
+				<batch:step name="Batch_Step" doc:id="6431e4aa-83b2-409b-a158-059f6ea463df" acceptPolicy="ONLY_FAILURES">
+					<logger level="INFO" doc:name="Logger" doc:id="6e242ead-5010-43f6-9cda-871113a380de" message="-----------------------Error------------------------------"/>
+				</batch:step>
+
+</batch:process-records>
+<batch:on-complete >
+<logger level="INFO" doc:name="Logger" doc:id="1ff2a8f0-4304-4113-9869-8e534771a971" message='#["complya"]'/>
+</batch:on-complete>
+</batch:job>
+</flow>
+</mule>
