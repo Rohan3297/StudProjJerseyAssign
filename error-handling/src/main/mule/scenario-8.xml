@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:s3="http://www.mulesoft.org/schema/mule/s3"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+<flow name="scenario-8Flow1" doc:id="0deb057a-f5f4-46a2-ac00-6d39da528294" >
+		<http:listener doc:name="Listener" doc:id="f8ad316d-2bb0-4144-82c4-e6f6473cf27e" config-ref="HTTP_Listener_config" path="/error8">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+		</http:listener>
+		<flow-ref doc:name="sceanrio4" doc:id="00726853-2d7b-42ff-b578-971c2cf29219" name="sceanrio4"/>
+	</flow>
+	<flow name="scenario-8Flow" doc:id="b713f1ca-c177-4209-842a-77e469f60a7c" >
+		<scheduler doc:name="Scheduler" doc:id="8428f9ad-1ace-4f13-97e9-352c2a37d0e8" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="1" timeUnit="HOURS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<flow-ref doc:name="sceanrio4" doc:id="046aa24c-d61c-47e1-a9f1-c7c983b5d209" name="sceanrio4"/>
+	</flow>
+	<flow name="sceanrio4" doc:id="f2b8f5c4-dbe1-4803-b8f3-02a60059c00d" initialState="started">
+<s3:get-object doc:name="Get object" doc:id="3264f928-4337-4563-98e1-d6e0c88e278c" config-ref="Amazon_S3_Configuration" bucketName="filelandingzone" key="New Order.csv"/>
+<ee:transform doc:name="Transform Message" doc:id="cd07e179-b14b-40af-96a5-b5c75faecfda" >
+<ee:message >
+<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload groupBy ((item, index) -> item.CustomerID)]]></ee:set-payload>
+</ee:message>
+</ee:transform>
+<raise-error doc:name="Raise error" doc:id="0a42ab17-20d1-4b8c-ae73-6623df3f0334" type="EXPRESSION:GLOBAL" description="Error occured, Bad Request in Main flow"/>
+		<batch:job jobName="error-scenario41" doc:id="b048f4e1-3122-4d0d-8175-18d4fa0119f1">
+<batch:process-records >
+<batch:step name="Batch_Step" doc:id="2c717db8-73eb-4f0a-aaf4-01b09f49a6a2">
+<ee:transform doc:name="Transform Message" doc:id="59b19146-bd20-4af6-9893-d02d70a2977a">
+<ee:message>
+<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+</ee:message>
+</ee:transform>
+<http:request method="POST" doc:name="Request" doc:id="a3b4f0a6-f6da-4a81-b2cb-7fd6d2b2725e" config-ref="HTTP_Request_configuration" url="http://localhost:8081/abc4" />
+</batch:step>
+</batch:process-records>
+<batch:on-complete >
+<logger level="INFO" doc:name="Logger" doc:id="0be923c6-340f-4b08-91c2-df377cfbbaf5" message='#["complya"]'/>
+</batch:on-complete>
+</batch:job>
+
+</flow>
+<flow name="error-handling-4" doc:id="9dbd5604-5f1d-4af1-97f8-9fd79da58102" >
+<http:listener doc:name="Listener" doc:id="6677bf80-0ce3-4abf-b550-2a050170dc4e" path="/abc4" config-ref="HTTP_Listener_config"/>
+<ee:transform doc:name="Transform Message" doc:id="237b8c4f-be01-4b77-b133-800fc3918c3b" >
+<ee:message >
+<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload[0]]]></ee:set-payload>
+</ee:message>
+</ee:transform>
+		<s3:create-object doc:name="Create object" doc:id="cdb28a47-5bbc-492b-b9f1-6aeef2e4e9fa" config-ref="Amazon_S3_Configuration" bucketName="filesuccess" key="#['success-scenario-4__' ++ (now() as String {format:'yyyy-MM-dd-hh-mm-ss-SSSS'}  ) ++ '.csv']" />
+		<logger level="INFO" doc:name="Logger" doc:id="f8a46bbe-a847-44bd-b900-b140fba0a2a4" message="#[payload]"/>
+</flow>
+	<sub-flow name="scenario-8Sub_Flow" doc:id="a94a6d6c-db3e-4b70-b8f0-aeb729c81aaf" >
+		<file:write doc:name="Write" doc:id="87f0e837-dd26-454d-95e8-054ebaad17e6" config-ref="File_Config1" path="#['success' ++ (now() as String {format:'yyyy-MM-dd-hh-mm-ss-SSSS'}  ) ++ '.csv']" />
+	</sub-flow>
+
+	
+
+</mule>

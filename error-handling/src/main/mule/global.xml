@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<configuration doc:name="Configuration" doc:id="b11b09e2-12d2-4d44-b077-b7aa3aa2d92e" defaultErrorHandler-ref="globalError_Handler" />
+	<error-handler name="globalError_Handler" doc:id="4243bad4-8712-495e-a01a-e140e1118723" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b3d1ed17-d503-4ac8-b1bf-9e9641fe6326" type="EXPRESSION:GLOBAL">
+			<ee:transform doc:name="Transform Message" doc:id="7d311867-7d3e-4e57-beaf-1fd6f88e81f8">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Success: false,
+	apiName: "asd",
+	version: "323.2.3",
+	correlationId: correlationId,
+	timestamp: now(),
+	errorDetails:
+				{
+					message: error.description						
+				}
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<set-variable value="400" doc:name="Set Variable" doc:id="c415074e-9e22-4fc1-8939-bef8b7353e37" variableName="httpStatus" />
+		</on-error-continue>
+	</error-handler>
+</mule>
